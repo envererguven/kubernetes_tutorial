@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telco-python-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: telco-python-api
+  template:
+    metadata:
+      labels:
+        app: telco-python-api
+    spec:
+      containers:
+      - name: api
+        image: my-telco-api:v1
+        env:
+        - name: MONGO_URL
+          value: "mongodb://telco-mongo-svc:27017"
+        ports:
+        - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telco-python-api-svc
+spec:
+  selector:
+    app: telco-python-api
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telco-go-ingestor
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: telco-go-ingestor
+  template:
+    metadata:
+      labels:
+        app: telco-go-ingestor
+    spec:
+      containers:
+      - name: ingestor
+        image: my-telco-ingestor:v1
+        env:
+        - name: REDIS_URL
+          value: "telco-redis-svc:6379"

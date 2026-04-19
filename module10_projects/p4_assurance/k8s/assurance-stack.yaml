@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assurance-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assurance
+  template:
+    metadata:
+      labels:
+        app: assurance
+    spec:
+      containers:
+      - name: java-engine
+        image: my-java-engine:v1
+      - name: php-legacy
+        image: my-php-legacy:v1
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "assurepass"
+      - name: redis
+        image: redis:alpine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: assurance-svc
+spec:
+  selector:
+    app: assurance
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

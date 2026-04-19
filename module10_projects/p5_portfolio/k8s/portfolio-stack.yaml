@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portfolio
+  template:
+    metadata:
+      labels:
+        app: portfolio
+    spec:
+      containers:
+      - name: python-calc
+        image: my-portfolio-calc:v1
+      - name: go-fetcher
+        image: my-go-fetcher:v1
+      - name: timescale-db
+        image: postgres:15 # Using standard postgres for simplicity
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "riskpass"
+      - name: redis
+        image: redis:alpine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio-svc
+spec:
+  selector:
+    app: portfolio
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

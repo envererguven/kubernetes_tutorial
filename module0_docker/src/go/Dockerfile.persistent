@@ -1,0 +1,11 @@
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY persistent-app.go .
+RUN go build -o persistent-app persistent-app.go
+
+FROM alpine:latest
+WORKDIR /root/
+COPY --from=builder /app/persistent-app .
+# Ensure the mount point exists
+RUN mkdir /data
+CMD ["./persistent-app"]

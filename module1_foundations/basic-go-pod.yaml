@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: basic-go-pod
+  labels:
+    app: go-worker
+    env: development
+spec:
+  containers:
+  - name: go-app
+    image: my-go-cli:v1
+    imagePullPolicy: IfNotPresent

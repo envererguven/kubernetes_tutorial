@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Core Banking Dashboard</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        .status { color: green; font-weight: bold; }
+        .tx-list { margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🏦 Martian Bank</h1>
+        <p>System Status: <span class="status">OPERATIONAL</span></p>
+        <p>Connected to: <strong>Java Transaction API</strong></p>
+        
+        <div class="tx-list">
+            <h3>Recent Activity</h3>
+            <ul id="txLog">
+                <li>[SESSION] User authenticated via JWT</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        setInterval(() => {
+            const list = document.getElementById('txLog');
+            const item = document.createElement('li');
+            item.textContent = `[TRANSFER] $${(Math.random() * 1000).toFixed(2)} sent to ACCT-${Math.floor(Math.random() * 100000)}`;
+            list.prepend(item);
+            if (list.children.length > 5) list.lastChild.remove();
+        }, 5000);
+    </script>
+</body>
+</html>

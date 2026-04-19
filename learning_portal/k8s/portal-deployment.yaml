@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learning-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: learning-portal
+  template:
+    metadata:
+      labels:
+        app: learning-portal
+    spec:
+      containers:
+      - name: portal
+        image: learning-portal:v2
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: training-content
+          mountPath: /workspace
+        ports:
+        - containerPort: 5000
+      volumes:
+      - name: training-content
+        hostPath:
+          path: /run/desktop/mnt/host/c/PROJECTS/docker_kubernetes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: learning-portal-svc
+spec:
+  selector:
+    app: learning-portal
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000

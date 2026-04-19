@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K8s Masterclass Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .prose pre { background: #1a1a1a; padding: 1rem; border-radius: 0.5rem; }
+        .prose code { color: #f472b6; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex" x-data="portalApp()">
+    
+    <!-- Sidebar -->
+    <aside class="w-72 bg-gray-800 border-r border-gray-700 flex flex-col">
+        <div class="p-6 border-b border-gray-700">
+            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                K8s Learning Portal
+            </h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-4 space-y-2">
+            <template x-for="mod in modules" :key="mod.id">
+                <div>
+                    <button 
+                        @click="toggleModule(mod.id)"
+                        class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-700 flex justify-between items-center transition"
+                        :class="activeModule === mod.id ? 'bg-gray-700 text-blue-400' : ''">
+                        <span x-text="mod.name"></span>
+                        <svg class="w-4 h-4 transition-transform" :class="expandedModule === mod.id ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 5l7 7-7 7"></path></svg>
+                    </button>
+                    <div x-show="expandedModule === mod.id" x-cloak class="ml-4 mt-1 space-y-1 border-l border-gray-700 pl-4">
+                        <template x-for="file in moduleFiles[mod.id]" :key="file">
+                            <button 
+                                @click="loadFile(mod.id, file)"
+                                class="w-full text-left text-sm py-1 px-2 rounded hover:text-blue-400 transition"
+                                :class="activeFile === file ? 'text-blue-400 font-medium' : 'text-gray-400'"
+                                x-text="file">
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-16 bg-gray-800 border-b border-gray-700 flex items-center px-8 justify-between">
+            <h2 class="text-sm font-medium text-gray-400" x-text="activeFile ? activeFile : 'Select a file to begin'"></h2>
+            <div x-show="activeFile && contentType === 'code'" x-cloak>
+                <button @click="copyCode()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition">
+                    Copy Code
+                </button>
+            </div>
+        </header>
+        
+        <div class="flex-1 overflow-y-auto p-12 max-w-5xl mx-auto w-full">
+            <!-- Error Banner -->
+            <div x-show="errorMessage" class="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg mb-8" x-cloak>
+                <p class="font-bold">Error Detected</p>
+                <p x-text="errorMessage"></p>
+            </div>
+
+            <div x-show="!loading && contentType === 'markdown'" class="prose prose-invert max-w-none" x-html="contentHtml"></div>
+            <pre x-show="!loading && contentType === 'code'" class="rounded-lg overflow-hidden"><code id="codeBlock" class="language-javascript" x-text="contentRaw"></code></pre>
+            
+            <div x-show="loading" class="flex justify-center items-center h-64">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+            
+            <div x-show="!activeFile && !loading" class="flex flex-col items-center justify-center h-full text-gray-500">
+                <svg class="w-24 h-24 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <p class="text-lg">Select a module and file from the sidebar to start learning.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = '/api'; 
+
+        function portalApp() {
+            return {
+                modules: [],
+                moduleFiles: {},
+                expandedModule: null,
+                activeModule: null,
+                activeFile: null,
+                contentHtml: '',
+                contentRaw: '',
+                contentType: 'markdown',
+                loading: false,
+                errorMessage: null,
+
+                async init() {
+                    this.loading = true;
+                    try {
+                        const res = await fetch(`${API_URL}/modules`);
+                        if (!res.ok) {
+                            const data = await res.json();
+                            throw new Error(data.error || `HTTP error! status: ${res.status}`);
+                        }
+                        this.modules = await res.json();
+                        if (this.modules.length === 0) {
+                            this.errorMessage = "No modules found. Please check if the Volume (/workspace) is mounted correctly.";
+                        }
+                    } catch (e) {
+                        this.errorMessage = "Failed to connect to API: " + e.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async toggleModule(mid) {
+                    this.expandedModule = this.expandedModule === mid ? null : mid;
+                    if (this.expandedModule && !this.moduleFiles[mid]) {
+                        const res = await fetch(`${API_URL}/modules/${mid}/files`);
+                        this.moduleFiles[mid] = await res.json();
+                    }
+                },
+
+                async loadFile(mid, file) {
+                    this.loading = true;
+                    this.activeFile = file;
+                    this.activeModule = mid;
+                    const res = await fetch(`${API_URL}/content/${mid}/${file}`);
+                    const data = await res.json();
+                    this.contentType = data.type;
+                    this.contentRaw = data.raw;
+                    this.contentHtml = data.html || '';
+                    
+                    this.loading = false;
+                    this.$nextTick(() => {
+                        document.querySelectorAll('pre code').forEach((el) => {
+                            hljs.highlightElement(el);
+                        });
+                    });
+                },
+
+                copyCode() {
+                    navigator.clipboard.writeText(this.contentRaw);
+                    alert('Code copied to clipboard!');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

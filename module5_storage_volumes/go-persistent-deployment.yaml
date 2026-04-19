@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-persistent-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-persistent
+  template:
+    metadata:
+      labels:
+        app: go-persistent
+    spec:
+      containers:
+      - name: go-app
+        image: my-go-persistent:v1
+        volumeMounts:
+        - name: data-store
+          mountPath: /data
+      volumes:
+      - name: data-store
+        persistentVolumeClaim:
+          claimName: local-pvc

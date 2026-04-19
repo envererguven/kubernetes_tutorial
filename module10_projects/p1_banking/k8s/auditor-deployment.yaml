@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banking-go-auditor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: banking-go-auditor
+  template:
+    metadata:
+      labels:
+        app: banking-go-auditor
+    spec:
+      containers:
+      - name: auditor
+        image: my-go-auditor:v1
+        env:
+        - name: DB_URL
+          value: "banking-db-svc:5432"
